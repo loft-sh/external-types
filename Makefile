@@ -1,0 +1,2 @@
+generate:
+	  deepcopy-gen --go-header-file hack/boilerplate.go.txt --input-dirs ./argoproj/argo-cd/v2/pkg/apis/,./argoproj/argo-cd/v2/pkg/apis/application,./argoproj/argo-cd/v2/pkg/apis/application/v1alpha1 -v 9 -O zz_generated.deepcopy -o ./
