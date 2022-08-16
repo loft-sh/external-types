@@ -2,7 +2,10 @@ module github.com/loft-sh/external-types
 
 go 1.17
 
-require k8s.io/apimachinery v0.24.3
+require (
+	k8s.io/apimachinery v0.24.3
+	sigs.k8s.io/controller-runtime v0.12.3
+)
 
 require (
 	github.com/go-logr/logr v1.2.0 // indirect

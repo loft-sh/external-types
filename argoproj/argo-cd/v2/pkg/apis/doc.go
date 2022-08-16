@@ -1,3 +1,3 @@
 //
-// +domain=argoproj
+// +domain=argoproj.io
 package apis
