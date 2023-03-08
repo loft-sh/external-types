@@ -104,6 +104,5 @@ type ResourceQuantity struct {
 	// +optional
 	Kind string `json:"kind,omitempty"`
 	// Quantity is the quantity for hte limit (for example).
-	// +optional
-	Quantity int64 `json:"quantity,omitempty"`
+	Quantity int64 `json:"quantity"`
 }
