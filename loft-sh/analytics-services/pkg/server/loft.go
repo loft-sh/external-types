@@ -78,8 +78,13 @@ type UserActivity struct {
 	Username string `json:"username"`
 
 	// Activity describes the activity of an user within loft.
-	// The map holds key value pairs of the 'cluster/namespace' that were targeted
-	// by the user as key and as value the amount of requests that have targeted
-	// this cluster/namespace.
-	Activity map[string]int `json:"activity"`
+	// This is an array of Activity objects, the Activity object contains the target
+	// cluster/namespace as the Target field, and the count of requests of that target in the
+	// Count field.
+	Activity []Activity `json:"activity"`
+}
+
+type Activity struct {
+	Target string `json:"target"`
+	Count  int    `json:"count"`
 }
