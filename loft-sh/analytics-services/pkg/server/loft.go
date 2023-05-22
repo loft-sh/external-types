@@ -23,6 +23,22 @@ type AnalyticsInput struct {
 	// UserActivity holds information about user activity since
 	// the last request
 	UserActivity []UserActivity `json:"userActivity"`
+
+	// features
+	FeatureCustomBranding        bool `json:"customBranding"`
+	FeatureSleepMode             bool `json:"sleepMode"`
+	FeatureSecretEncryption      bool `json:"secretEncryption"`
+	FeatureOIDCProvider          bool `json:"OIDCProvider"`
+	FeatureHA                    bool `json:"HA"`
+	FeatureDirectClusterEndpoint bool `json:"directClusterEndpoint"`
+	FeatureAudit                 bool `json:"audit"`
+	FeatureVaultIntegration      bool `json:"vaultIntegration"`
+
+	// limits
+	LimitsUser           int64 `json:"limitsUser"`
+	LimitsTeam           int64 `json:"limitsTeam"`
+	LimitsCluster        int64 `json:"limitsCluster"`
+	LimitsVirtualCluster int64 `json:"limitsVirtualCluster"`
 }
 
 // Request holds information about an analytics relevant request that has occurred in the loft
