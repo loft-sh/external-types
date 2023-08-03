@@ -60,6 +60,14 @@ type License struct {
 	// analytics server.
 	// +optional
 	Analytics *Analytics `json:"analytics,omitempty"`
+	// DomainToken holds the JWT with the URL that the Loft instance is publicly available on.
+	// (via Loft router)
+	// +optional
+	DomainToken string `json:"domainToken"`
+}
+
+type DomainToken struct {
+	URL string `json:"url"`
 }
 
 // Analytics is a struct that represents the analytics server and the requests that should be sent
