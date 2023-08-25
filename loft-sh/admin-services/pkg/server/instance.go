@@ -9,6 +9,9 @@ package server
 type InstanceCreateInput struct {
 	*InstanceTokenAuth
 
+	// Product is the product that is being used. Can be empty, loft, devpod-pro or vcluster-pro.
+	Product string `form:"product" json:"product"`
+
 	LoftVersion string `form:"version"     json:"version"     validate:"required"`
 	KubeVersion string `form:"kubeVersion" json:"kubeVersion" validate:"required"`
 
