@@ -12,6 +12,7 @@ type InstanceCreateInput struct {
 	// Product is the product that is being used. Can be empty, loft, devpod-pro or vcluster-pro.
 	Product string `form:"product" json:"product,omitempty"`
 
+	// Email is the admin email. Can be empty if no email is specified.
 	Email string `form:"email" json:"email,omitempty"`
 
 	LoftVersion string `form:"version"     json:"version"     validate:"required"`
