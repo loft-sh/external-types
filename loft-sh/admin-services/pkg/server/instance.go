@@ -1,5 +1,13 @@
 package server
 
+import "github.com/go-jose/go-jose/v3/jwt"
+
+type InstanceTokenAuthClaims struct {
+	*jwt.Claims
+
+	Hash string `json:"hash"`
+}
+
 // +genclient
 // +genclient:nonNamespaced
 
@@ -51,7 +59,7 @@ type License struct {
 	// Announcements is a map string/string such that we can easily add any additional data without
 	// needing to change types. For now, we will use the keys "name" and "content".
 	// +optional
-	Announcements []Announcement `json:"announcement,omitempty"`
+	Announcements []AnnouncementStatus `json:"announcement,omitempty"`
 	// BlockRequests is a slice of Request objects that the Loft instance should block from being
 	// created due to license usage overrun.
 	// +optional
@@ -61,7 +69,7 @@ type License struct {
 	Limits []ResourceQuantity `json:"limits,omitempty"`
 	// Features is a map of enabled features.
 	// +optional
-	Features []Feature `json:"features,omitempty"`
+	Features []LicenseFeature `json:"features,omitempty"`
 	// Analytics indicates the analytics endpoints and which requests should be sent to the
 	// analytics server.
 	// +optional
@@ -72,11 +80,22 @@ type License struct {
 	DomainToken string `json:"domainToken"`
 }
 
-// Announcement contains an announcement that should be shown within the Loft instance.
+// LicenseFeature is a struct representing the license data sent to a Loft instance after checking in with
+// the license server.
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=true
+type LicenseFeature struct {
+	Name string `json:"name"`
+
+	FeatureSpec
+	FeatureStatus
+}
+
+// AnnouncementStatus contains an announcement that should be shown within the Loft instance.
 // This information is sent to Loft instances when they check in with the license server.
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=true
-type Announcement struct {
+type AnnouncementStatus struct {
 	// Title contains the title of the announcement in HTML format.
 	Title string `json:"title,omitempty"`
 	// Body contains the main message of the announcement in HTML format.

@@ -1,17 +1,72 @@
 package server
 
+import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 type Module string
 
+var DefaultGetFeatureFunction = GetFeature
+
+var GetFeature = func(name string) (Feature, error) {
+	for _, feat := range AllFeatures {
+		if name == feat.Name {
+			return feat, nil
+		}
+	}
+	return Feature{}, nil
+}
+
+type FeatureSpec struct {
+	Hidden      bool   `json:"hidden,omitempty"`
+	Module      Module `json:"module,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+}
+
+type FeatureStatus struct {
+	Entitled      bool   `json:"entitled"`
+	Enabled       bool   `json:"enabled"`
+	BuyLink       string `json:"buy,omitempty"`
+	TryLink       string `json:"try,omitempty"`
+	LearnMoreLink string `json:"learnMore,omitempty"`
+}
+
+func NewFeature(
+	name string, spec FeatureSpec) Feature {
+	feat := Feature{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: spec,
+	}
+
+	AllFeatures = append(AllFeatures, feat)
+
+	return feat
+}
+
 type Feature struct {
-	Name           string             `json:"name"`
-	Enabled        bool               `json:"enabled"`
-	Hidden         bool               `json:"hidden,omitempty"`
-	Module         Module             `json:"module,omitempty"`
-	DisplayName    string             `json:"displayName,omitempty"`
-	LearnMoreLink  string             `json:"learnMore,omitempty"`
-	BuyLink        string             `json:"buy,omitempty"`
-	TryLink        string             `json:"try,omitempty"`
-	LegacyVersions map[string]Feature `json:"-"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   FeatureSpec   `json:"spec,omitempty"`
+	Status FeatureStatus `json:"status,omitempty"`
+
+	get            *func(string, func(string) (Feature, error)) (Feature, error)
+	LegacyVersions map[string]Feature
+}
+
+func (f Feature) WithCustomGetFunction(
+	fn func(string, func(string) (Feature, error)) (Feature, error),
+) Feature {
+	f.get = &fn
+	return f
+}
+
+func (f Feature) Get() (Feature, error) {
+	if f.get != nil {
+		fn := *f.get
+		return fn(f.ObjectMeta.Name, DefaultGetFeatureFunction)
+	}
+	return Feature{}, nil
 }
 
 const (
@@ -26,187 +81,194 @@ const (
 )
 
 var (
-	AllFeatures = map[string]Feature{
-		DevPodWorkspaces.Name: DevPodWorkspaces,
-		Runners.Name:          Runners,
-
-		VirtualClusters.Name:                    VirtualClusters,
-		VirtualClusterSleepMode.Name:            VirtualClusterSleepMode,
-		VirtualClusterBuildInCoreDNS.Name:       VirtualClusterBuildInCoreDNS,
-		VirtualClusterSyncPatches.Name:          VirtualClusterSyncPatches,
-		VirtualClusterAdmissionControl.Name:     VirtualClusterAdmissionControl,
-		VirtualClusterIsolatedControlPlane.Name: VirtualClusterIsolatedControlPlane,
-
-		AuditLogging.Name:             AuditLogging,
-		SSOAuth.Name:                  SSOAuth,
-		MultipleSSOProviders.Name:     MultipleSSOProviders,
-		AutomaticIngressAuth.Name:     AutomaticIngressAuth,
-		OIDCProvider.Name:             OIDCProvider,
-		HighAvailabilityMode.Name:     HighAvailabilityMode,
-		MultiRegionMode.Name:          MultiRegionMode,
-		CustomBranding.Name:           CustomBranding,
-		AdvancedUICustomizations.Name: AdvancedUICustomizations,
-		TemplateVersioning.Name:       TemplateVersioning,
-		Apps.Name:                     Apps,
-		Runners.Name:                  Runners,
-	}
+	AllFeatures = []Feature{}
 
 	// DevPod
-	DevPodWorkspaces = Feature{
-		Name:   "devpod-workspaces",
-		Hidden: true,
-		Module: ModuleDevPod,
-	}
+	DevPodWorkspaces = NewFeature(
+		"devpod-workspaces",
+		FeatureSpec{
+			Hidden: true,
+			Module: ModuleDevPod,
+		})
 
 	// Runners
-	Runners = Feature{
-		Name:   "runners",
-		Hidden: true,
-		Module: ModuleDevPod,
-	}
+	Runners = NewFeature(
+		"runners",
+		FeatureSpec{
+			Hidden: true,
+			Module: ModuleDevPod,
+		})
 
 	// Virtual Clusters
-	VirtualClusters = Feature{
-		Name:        "vcluster",
-		DisplayName: "Virtual Cluster CRD & Controller",
-		Module:      ModuleVirtualClusters,
-	}
-	VirtualClusterSleepMode = Feature{
-		Name:        SpaceSleepMode.Name,
-		DisplayName: "Sleep Mode",
-		Module:      ModuleVirtualClusters,
-	}
-	VirtualClusterBuildInCoreDNS = Feature{
-		Name:        "vcluster-built-in-coredns",
-		DisplayName: "Built-in CoreDNS",
-	}
-	VirtualClusterSyncPatches = Feature{
-		Name:        "vcluster-sync-patches",
-		DisplayName: "Sync Patches",
-	}
-	VirtualClusterAdmissionControl = Feature{
-		Name:        "vcluster-admission-control",
-		DisplayName: "Virtual Admission Control",
-	}
-	VirtualClusterIsolatedControlPlane = Feature{
-		Name:        "vcluster-isolated-control-plane",
-		DisplayName: "Isolated Control Plane",
-	}
-	VirtualClusterCentralHostPathMapper = Feature{
-		Name:        "vcluster-host-path-mapper",
-		DisplayName: "Central HostPath Mapper",
-	}
+	VirtualClusters = NewFeature(
+		"vcluster",
+		FeatureSpec{
+			DisplayName: "Virtual Cluster CRD & Controller",
+			Module:      ModuleVirtualClusters,
+		})
+	VirtualClusterSleepMode = NewFeature(
+		"vcluster-sleep-mode",
+		FeatureSpec{
+			DisplayName: "Sleep Mode",
+			Module:      ModuleVirtualClusters,
+		})
+	VirtualClusterBuildInCoreDNS = NewFeature(
+		"vcluster-built-in-coredns",
+		FeatureSpec{
+			DisplayName: "Built-in CoreDNS",
+		})
+	VirtualClusterSyncPatches = NewFeature(
+		"vcluster-sync-patches",
+		FeatureSpec{
+			DisplayName: "Sync Patches",
+		})
+	VirtualClusterAdmissionControl = NewFeature(
+		"vcluster-admission-control",
+		FeatureSpec{
+			DisplayName: "Virtual Admission Control",
+		})
+	VirtualClusterIsolatedControlPlane = NewFeature(
+		"vcluster-isolated-control-plane",
+		FeatureSpec{
+			DisplayName: "Isolated Control Plane",
+		})
+	VirtualClusterCentralHostPathMapper = NewFeature(
+		"vcluster-host-path-mapper",
+		FeatureSpec{
+			DisplayName: "Central HostPath Mapper",
+		})
 
 	// Spaces & Clusters
-	Spaces Feature = Feature{
-		Name:        "spaces",
-		DisplayName: "Self-Service Namespaces",
-		Module:      ModuleKubernetes,
-	}
-	ConnectClusters = Feature{
-		Name:        "clusters",
-		DisplayName: "Connect Clusters",
-		Module:      ModuleKubernetes,
-	}
-	SpaceSleepMode = Feature{
-		Name:        "sleep-mode",
-		DisplayName: "Sleep Mode For Namespaces",
-		Module:      ModuleKubernetes,
-	}
-	ClusterAccess = Feature{
-		Name:   "cluster-access",
-		Hidden: true,
-	}
-	ClusterRoles = Feature{
-		Name:   "cluster-roles",
-		Hidden: true,
-	}
+	Spaces = NewFeature(
+		"spaces",
+		FeatureSpec{
+			DisplayName: "Self-Service Namespaces",
+			Module:      ModuleKubernetes,
+		})
+	SpaceSleepMode = NewFeature(
+		"spaces-sleep-mode",
+		FeatureSpec{
+			DisplayName: "Sleep Mode For Namespaces",
+			Module:      ModuleKubernetes,
+		})
+	ConnectedClusters = NewFeature(
+		"clusters",
+		FeatureSpec{
+			DisplayName: "Connected Clusters",
+			Module:      ModuleKubernetes,
+		})
+	ClusterAccess = NewFeature(
+		"cluster-access",
+		FeatureSpec{
+			Hidden: true,
+		})
+	ClusterRoles = NewFeature(
+		"cluster-roles",
+		FeatureSpec{
+			Hidden: true,
+		})
 
 	// Auth-Related Features
-	AuditLogging = Feature{
-		Name:        "audit-logging",
-		DisplayName: "Audit Logging",
-		Module:      ModulePlatformAuth,
-	}
-	SSOAuth = Feature{
-		Name:        "sso-authentication",
-		DisplayName: "Single Sign-On (SSO)",
-		Module:      ModulePlatformAuth,
-	}
-	MultipleSSOProviders = Feature{
-		Name:        "multiple-sso-providers",
-		DisplayName: "Multiple SSO Providers",
-		Module:      ModulePlatformAuth,
-	}
-	AutomaticIngressAuth = Feature{
-		Name:        "auto-ingress-authentication",
-		DisplayName: "Automatic Ingress Authentication",
-		Module:      ModulePlatformAuth,
-	}
-	OIDCProvider = Feature{
-		Name:        "oidc-provider",
-		DisplayName: "OIDC Provider",
-		Module:      ModulePlatformAuth,
-	}
+	AuditLogging = NewFeature(
+		"audit-logging",
+		FeatureSpec{
+			DisplayName: "Audit Logging",
+			Module:      ModulePlatformAuth,
+		})
+	SSOAuth = NewFeature(
+		"sso-authentication",
+		FeatureSpec{
+			DisplayName: "Single Sign-On (SSO)",
+			Module:      ModulePlatformAuth,
+		})
+	MultipleSSOProviders = NewFeature(
+		"multiple-sso-providers",
+		FeatureSpec{
+			DisplayName: "Multiple SSO Providers",
+			Module:      ModulePlatformAuth,
+		})
+	AutomaticIngressAuth = NewFeature(
+		"auto-ingress-authentication",
+		FeatureSpec{
+			DisplayName: "Automatic Ingress Authentication",
+			Module:      ModulePlatformAuth,
+		})
+	OIDCProvider = NewFeature(
+		"oidc-provider",
+		FeatureSpec{
+			DisplayName: "OIDC Provider",
+			Module:      ModulePlatformAuth,
+		})
 
 	// Templating Features
-	TemplateVersioning = Feature{ // TODO: Needs to be implemented
-		Name:        "template-versioning",
-		DisplayName: "Template Versioning",
-		Module:      ModulePlatformTemplating,
-	}
-	Apps = Feature{
-		Name:        "apps",
-		DisplayName: "Apps",
-		Module:      ModulePlatformTemplating,
-	}
+	TemplateVersioning = NewFeature(
+		"template-versioning",
+		FeatureSpec{
+			DisplayName: "Template Versioning",
+			Module:      ModulePlatformTemplating,
+		})
+	Apps = NewFeature(
+		"apps",
+		FeatureSpec{
+			DisplayName: "Apps",
+			Module:      ModulePlatformTemplating,
+		})
 
 	// Secrets
-	Secrets = Feature{
-		Name:   "secrets",
-		Module: ModulePlatformTemplating,
-	}
-	SecretEncryption = Feature{
-		Name:   "secret-encyrption",
-		Module: ModulePlatformTemplating,
-	}
+	Secrets = NewFeature(
+		"secrets",
+		FeatureSpec{
+			Module: ModulePlatformTemplating,
+		})
+	SecretEncryption = NewFeature(
+		"secret-encyrption",
+		FeatureSpec{
+			Module: ModulePlatformTemplating,
+		})
 
 	// Integrations
-	VaultIntegration = Feature{
-		Name:   "vault-integration",
-		Module: ModulePlatformIntegrations,
-	}
-	ArgoIntegration = Feature{
-		Name:   "argo-integration",
-		Module: ModulePlatformIntegrations,
-	}
+	VaultIntegration = NewFeature(
+		"vault-integration",
+		FeatureSpec{
+			Module: ModulePlatformIntegrations,
+		})
+	ArgoIntegration = NewFeature(
+		"argo-integration",
+		FeatureSpec{
+			Module: ModulePlatformIntegrations,
+		})
 
 	// HA & Other Advanced Deployment Features
-	HighAvailabilityMode = Feature{
-		Name:        "ha-mode",
-		DisplayName: "High-Availability Mode",
-		Module:      ModulePlatformDeployment,
-	}
-	MultiRegionMode = Feature{
-		Name:        "multi-region-mode",
-		DisplayName: "Multi-Region Mode",
-		Module:      ModulePlatformDeployment,
-	}
-	AirGappedMode = Feature{
-		Name:        "air-gapped-mode",
-		DisplayName: "Air-Gapped Mode",
-		Module:      ModulePlatformDeployment,
-	}
+	HighAvailabilityMode = NewFeature(
+		"ha-mode",
+		FeatureSpec{
+			DisplayName: "High-Availability Mode",
+			Module:      ModulePlatformDeployment,
+		})
+	MultiRegionMode = NewFeature(
+		"multi-region-mode",
+		FeatureSpec{
+			DisplayName: "Multi-Region Mode",
+			Module:      ModulePlatformDeployment,
+		})
+	AirGappedMode = NewFeature( // Purely For Display Purposes
+		"air-gapped-mode",
+		FeatureSpec{
+			DisplayName: "Air-Gapped Mode",
+			Module:      ModulePlatformDeployment,
+		})
 
 	// UI Customization Features
-	CustomBranding = Feature{
-		Name:        "custom-branding",
-		DisplayName: "Custom Branding",
-		Module:      ModulePlatformCustomization,
-	}
-	AdvancedUICustomizations = Feature{
-		Name:        "advanced-ui-customizations",
-		DisplayName: "Advanced UI Customizations",
-		Module:      ModulePlatformCustomization,
-	}
+	CustomBranding = NewFeature(
+		"custom-branding",
+		FeatureSpec{
+			DisplayName: "Custom Branding",
+			Module:      ModulePlatformCustomization,
+		})
+	AdvancedUICustomizations = NewFeature(
+		"advanced-ui-customizations",
+		FeatureSpec{
+			DisplayName: "Advanced UI Customizations",
+			Module:      ModulePlatformCustomization,
+		})
 )
