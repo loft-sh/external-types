@@ -1,73 +1,6 @@
 package server
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 type Module string
-
-var DefaultGetFeatureFunction = GetFeature
-
-var GetFeature = func(name string) (Feature, error) {
-	for _, feat := range AllFeatures {
-		if name == feat.Name {
-			return feat, nil
-		}
-	}
-	return Feature{}, nil
-}
-
-type FeatureSpec struct {
-	Hidden      bool   `json:"hidden,omitempty"`
-	Module      Module `json:"module,omitempty"`
-	DisplayName string `json:"displayName,omitempty"`
-}
-
-type FeatureStatus struct {
-	Entitled      bool   `json:"entitled"`
-	Enabled       bool   `json:"enabled"`
-	BuyLink       string `json:"buy,omitempty"`
-	TryLink       string `json:"try,omitempty"`
-	LearnMoreLink string `json:"learnMore,omitempty"`
-}
-
-func NewFeature(
-	name string, spec FeatureSpec) Feature {
-	feat := Feature{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: spec,
-	}
-
-	AllFeatures = append(AllFeatures, feat)
-
-	return feat
-}
-
-type Feature struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   FeatureSpec   `json:"spec,omitempty"`
-	Status FeatureStatus `json:"status,omitempty"`
-
-	get            *func(string, func(string) (Feature, error)) (Feature, error)
-	LegacyVersions map[string]Feature
-}
-
-func (f Feature) WithCustomGetFunction(
-	fn func(string, func(string) (Feature, error)) (Feature, error),
-) Feature {
-	f.get = &fn
-	return f
-}
-
-func (f Feature) Get() (Feature, error) {
-	if f.get != nil {
-		fn := *f.get
-		return fn(f.ObjectMeta.Name, DefaultGetFeatureFunction)
-	}
-	return Feature{}, nil
-}
 
 const (
 	ModuleDevPod                Module = "DevPod"
@@ -81,14 +14,14 @@ const (
 )
 
 var (
-	AllFeatures = []Feature{}
+	AllFeatures = []FeatureWrapper{}
 
 	// DevPod
 	DevPodWorkspaces = NewFeature(
 		"devpod-workspaces",
 		FeatureSpec{
 			Hidden: true,
-			Module: ModuleDevPod,
+			Module: string(ModuleDevPod),
 		})
 
 	// Runners
@@ -96,7 +29,7 @@ var (
 		"runners",
 		FeatureSpec{
 			Hidden: true,
-			Module: ModuleDevPod,
+			Module: string(ModuleDevPod),
 		})
 
 	// Virtual Clusters
@@ -104,13 +37,13 @@ var (
 		"vcluster",
 		FeatureSpec{
 			DisplayName: "Virtual Cluster CRD & Controller",
-			Module:      ModuleVirtualClusters,
+			Module:      string(ModuleVirtualClusters),
 		})
 	VirtualClusterSleepMode = NewFeature(
 		"vcluster-sleep-mode",
 		FeatureSpec{
 			DisplayName: "Sleep Mode",
-			Module:      ModuleVirtualClusters,
+			Module:      string(ModuleVirtualClusters),
 		})
 	VirtualClusterBuildInCoreDNS = NewFeature(
 		"vcluster-built-in-coredns",
@@ -143,19 +76,19 @@ var (
 		"spaces",
 		FeatureSpec{
 			DisplayName: "Self-Service Namespaces",
-			Module:      ModuleKubernetes,
+			Module:      string(ModuleKubernetes),
 		})
 	SpaceSleepMode = NewFeature(
 		"spaces-sleep-mode",
 		FeatureSpec{
 			DisplayName: "Sleep Mode For Namespaces",
-			Module:      ModuleKubernetes,
+			Module:      string(ModuleKubernetes),
 		})
 	ConnectedClusters = NewFeature(
 		"clusters",
 		FeatureSpec{
 			DisplayName: "Connected Clusters",
-			Module:      ModuleKubernetes,
+			Module:      string(ModuleKubernetes),
 		})
 	ClusterAccess = NewFeature(
 		"cluster-access",
@@ -173,31 +106,31 @@ var (
 		"audit-logging",
 		FeatureSpec{
 			DisplayName: "Audit Logging",
-			Module:      ModulePlatformAuth,
+			Module:      string(ModulePlatformAuth),
 		})
 	SSOAuth = NewFeature(
 		"sso-authentication",
 		FeatureSpec{
 			DisplayName: "Single Sign-On (SSO)",
-			Module:      ModulePlatformAuth,
+			Module:      string(ModulePlatformAuth),
 		})
 	MultipleSSOProviders = NewFeature(
 		"multiple-sso-providers",
 		FeatureSpec{
 			DisplayName: "Multiple SSO Providers",
-			Module:      ModulePlatformAuth,
+			Module:      string(ModulePlatformAuth),
 		})
 	AutomaticIngressAuth = NewFeature(
 		"auto-ingress-authentication",
 		FeatureSpec{
 			DisplayName: "Automatic Ingress Authentication",
-			Module:      ModulePlatformAuth,
+			Module:      string(ModulePlatformAuth),
 		})
 	OIDCProvider = NewFeature(
 		"oidc-provider",
 		FeatureSpec{
 			DisplayName: "OIDC Provider",
-			Module:      ModulePlatformAuth,
+			Module:      string(ModulePlatformAuth),
 		})
 
 	// Templating Features
@@ -205,37 +138,37 @@ var (
 		"template-versioning",
 		FeatureSpec{
 			DisplayName: "Template Versioning",
-			Module:      ModulePlatformTemplating,
+			Module:      string(ModulePlatformTemplating),
 		})
 	Apps = NewFeature(
 		"apps",
 		FeatureSpec{
 			DisplayName: "Apps",
-			Module:      ModulePlatformTemplating,
+			Module:      string(ModulePlatformTemplating),
 		})
 
 	// Secrets
 	Secrets = NewFeature(
 		"secrets",
 		FeatureSpec{
-			Module: ModulePlatformTemplating,
+			Module: string(ModulePlatformTemplating),
 		})
 	SecretEncryption = NewFeature(
 		"secret-encyrption",
 		FeatureSpec{
-			Module: ModulePlatformTemplating,
+			Module: string(ModulePlatformTemplating),
 		})
 
 	// Integrations
 	VaultIntegration = NewFeature(
 		"vault-integration",
 		FeatureSpec{
-			Module: ModulePlatformIntegrations,
+			Module: string(ModulePlatformIntegrations),
 		})
 	ArgoIntegration = NewFeature(
 		"argo-integration",
 		FeatureSpec{
-			Module: ModulePlatformIntegrations,
+			Module: string(ModulePlatformIntegrations),
 		})
 
 	// HA & Other Advanced Deployment Features
@@ -243,19 +176,19 @@ var (
 		"ha-mode",
 		FeatureSpec{
 			DisplayName: "High-Availability Mode",
-			Module:      ModulePlatformDeployment,
+			Module:      string(ModulePlatformDeployment),
 		})
 	MultiRegionMode = NewFeature(
 		"multi-region-mode",
 		FeatureSpec{
 			DisplayName: "Multi-Region Mode",
-			Module:      ModulePlatformDeployment,
+			Module:      string(ModulePlatformDeployment),
 		})
 	AirGappedMode = NewFeature( // Purely For Display Purposes
 		"air-gapped-mode",
 		FeatureSpec{
 			DisplayName: "Air-Gapped Mode",
-			Module:      ModulePlatformDeployment,
+			Module:      string(ModulePlatformDeployment),
 		})
 
 	// UI Customization Features
@@ -263,12 +196,12 @@ var (
 		"custom-branding",
 		FeatureSpec{
 			DisplayName: "Custom Branding",
-			Module:      ModulePlatformCustomization,
+			Module:      string(ModulePlatformCustomization),
 		})
 	AdvancedUICustomizations = NewFeature(
 		"advanced-ui-customizations",
 		FeatureSpec{
 			DisplayName: "Advanced UI Customizations",
-			Module:      ModulePlatformCustomization,
+			Module:      string(ModulePlatformCustomization),
 		})
 )
