@@ -19,7 +19,7 @@ type FeatureWrapper struct {
 	LegacyVersions map[string]Feature
 }
 
-func NewFeature(name string, spec FeatureSpec) FeatureWrapper {
+func NewFeature(name string, spec FeatureSpec) Feature {
 	w := FeatureWrapper{
 		feature: Feature{
 			ObjectMeta: metav1.ObjectMeta{
@@ -29,16 +29,19 @@ func NewFeature(name string, spec FeatureSpec) FeatureWrapper {
 		},
 	}
 
-	AllFeatures = append(AllFeatures, w)
+	AllFeatures[name] = w
 
-	return w
+	return w.feature
 }
 
-func (w FeatureWrapper) WithCustomGetFunction(
+func (f Feature) WithCustomGetFunction(
 	fn func(string, func(string) (Feature, error)) (Feature, error),
-) FeatureWrapper {
-	w.get = &fn
-	return w
+) Feature {
+	w, ok := AllFeatures[f.ObjectMeta.Name]
+	if ok {
+		w.get = &fn
+	}
+	return w.feature
 }
 
 func (w FeatureWrapper) Get() (Feature, error) {
@@ -47,4 +50,8 @@ func (w FeatureWrapper) Get() (Feature, error) {
 		return fn(w.feature.ObjectMeta.Name, DefaultGetFeatureFunction)
 	}
 	return Feature{}, nil
+}
+
+func (w FeatureWrapper) GetName() string {
+	return w.feature.Name
 }

@@ -17,12 +17,18 @@ type Feature struct {
 	Status FeatureStatus `json:"status,omitempty"`
 }
 
+// FeatureSpec contains the spec of a feature flag in the product
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=true
 type FeatureSpec struct {
 	Hidden      bool   `json:"hidden,omitempty"`
 	Module      string `json:"module,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
 }
 
+// FeatureStatus contains the status of a feature flag in the product
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=true
 type FeatureStatus struct {
 	Entitled      bool   `json:"entitled"`
 	Enabled       bool   `json:"enabled"`

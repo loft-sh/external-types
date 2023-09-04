@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	AllFeatures = []FeatureWrapper{}
+	AllFeatures = map[string]FeatureWrapper{}
 
 	// DevPod
 	DevPodWorkspaces = NewFeature(
